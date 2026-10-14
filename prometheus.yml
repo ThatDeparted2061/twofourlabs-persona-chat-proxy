@@ -2,6 +2,6 @@ global:
   scrape_interval: 5s
 
 scrape_configs:
-  - job_name: llm-gateway
+  - job_name: persona-chat-proxy
     static_configs:
-      - targets: ["gateway:8080"] # scrapes http://gateway:8080/metrics
+      - targets: ["proxy:8080"] # http://proxy:8080/metrics
