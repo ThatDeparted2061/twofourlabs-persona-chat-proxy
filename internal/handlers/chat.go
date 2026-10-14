@@ -190,7 +190,7 @@ func (h *Chat) stream(w http.ResponseWriter, r *http.Request, t *turn, state bud
 	var s *sse
 	emit := func(content string) error {
 		if s == nil { // headers wait for the first token, so a turn that never starts can still get a clean HTTP error
-			s = startSSE(w, t.req.Model)
+			s = startSSE(w, cmpOr(t.req.Model, "auto")) // the provider's model name is known once the turn ends
 		}
 		return s.send(content, "")
 	}

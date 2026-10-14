@@ -73,7 +73,7 @@ var ErrClientGone = errors.New("client went away")
 // client sees one uninterrupted stream.
 func (r *Router) Relay(ctx context.Context, req providers.ChatRequest, opt RelayOptions, emit func(string) error) (*RelayResult, error) {
 	start := time.Now()
-	res := &RelayResult{}
+	res := &RelayResult{Failovers: []Failover{}}
 	var sent strings.Builder // everything the client has received
 	order := r.available()
 	for i := 0; i < max(1, opt.MaxAttempts); i++ {
