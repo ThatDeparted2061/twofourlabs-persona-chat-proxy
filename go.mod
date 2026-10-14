@@ -4,12 +4,12 @@ go 1.26.4
 
 require gopkg.in/yaml.v3 v3.0.1
 
-require github.com/go-chi/chi/v5 v5.3.2
-
 require (
-	github.com/redis/go-redis/v9 v9.23.0 // indirect
-	go.uber.org/atomic v1.12.0 // indirect
+	github.com/go-chi/chi/v5 v5.3.2
+	github.com/redis/go-redis/v9 v9.23.0
 )
+
+require go.uber.org/atomic v1.12.0 // indirect
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect

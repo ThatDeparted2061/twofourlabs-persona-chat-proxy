@@ -1,11 +1,9 @@
-// Package metrics defines the gateway's Prometheus metrics. They live on the
+// Package metrics defines the proxy's Prometheus metrics. They live on the
 // default registry and are served at /metrics.
 package metrics
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"strconv"
 	"time"
@@ -28,37 +26,12 @@ var (
 		Help:    "Upstream call latency by provider (time to first byte for streams).",
 		Buckets: []float64{0.05, 0.1, 0.25, 0.5, 1, 2, 4, 8, 16, 32, 60, 120}, // local models under load can take minutes
 	}, []string{"provider"})
-
-	cacheHits = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "llm_cache_hits_total",
-		Help: "Requests answered from cache, by cache type (exact, semantic).",
-	}, []string{"cache_type"})
-
-	tokens = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "llm_tokens_used_total",
-		Help: "Upstream tokens consumed, by client API key (hashed) and provider. Cache hits cost none.",
-	}, []string{"api_key", "provider"})
 )
 
 // ObserveCall records one upstream attempt.
 func ObserveCall(provider string, err error, d time.Duration) {
 	requests.WithLabelValues(provider, status(err)).Inc()
 	duration.WithLabelValues(provider).Observe(d.Seconds())
-}
-
-func CacheHit(cacheType string) { cacheHits.WithLabelValues(cacheType).Inc() }
-
-func AddTokens(apiKey, provider string, n int) {
-	if n > 0 {
-		tokens.WithLabelValues(KeyID(apiKey), provider).Add(float64(n))
-	}
-}
-
-// KeyID is a short, non-reversible label for an API key, so raw keys never
-// show up on the unauthenticated /metrics endpoint.
-func KeyID(apiKey string) string {
-	sum := sha256.Sum256([]byte(apiKey))
-	return hex.EncodeToString(sum[:4])
 }
 
 func status(err error) string {
