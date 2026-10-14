@@ -7,13 +7,22 @@ import (
 	"net/http"
 )
 
-// openAICompat talks to any OpenAI-compatible chat-completions API. Groq and
-// Ollama's /v1 endpoint are both configurations of it.
+// openAICompat talks to any OpenAI-compatible chat-completions API. OpenAI,
+// Groq and Ollama's /v1 endpoint are all configurations of it.
 type openAICompat struct {
 	name, baseURL, apiKey, model string
 	// streamUsage asks for a final usage chunk via stream_options. Groq reports
 	// stream usage in x_groq instead, so it leaves this off.
 	streamUsage bool
+	// cacheKey forwards prompt_cache_key; other compatible APIs may reject it.
+	cacheKey bool
+}
+
+// NewOpenAI returns the OpenAI adapter. baseURL is normally
+// https://api.openai.com/v1. OpenAI caches prompt prefixes of 1024+ tokens
+// automatically and reports hits in usage.prompt_tokens_details.cached_tokens.
+func NewOpenAI(baseURL, apiKey, model string) Provider {
+	return &openAICompat{name: "openai", baseURL: baseURL, apiKey: apiKey, model: model, streamUsage: true, cacheKey: true}
 }
 
 type openAIRequest struct {
@@ -53,6 +62,9 @@ func (p *openAICompat) body(req ChatRequest, stream bool) openAIRequest {
 		req.Model = p.model
 	}
 	req.Stream = stream
+	if !p.cacheKey {
+		req.PromptCacheKey = ""
+	}
 	out := openAIRequest{ChatRequest: req}
 	if stream && p.streamUsage {
 		out.StreamOptions = &streamOptions{IncludeUsage: true}

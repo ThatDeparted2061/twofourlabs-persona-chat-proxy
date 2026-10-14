@@ -1,5 +1,5 @@
-// Package providers adapts upstream LLM APIs (Groq, Gemini, Ollama) to one
-// OpenAI-shaped interface.
+// Package providers adapts upstream LLM APIs (OpenAI, Anthropic, Groq, Gemini,
+// Ollama) to one OpenAI-shaped interface.
 package providers
 
 import (
@@ -32,6 +32,9 @@ type Provider interface {
 type Message struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
+	// Cache marks the end of a stable prefix. Anthropic turns it into a
+	// cache_control breakpoint; OpenAI caches prefixes automatically.
+	Cache bool `json:"-"`
 }
 
 // ChatRequest is the subset of the OpenAI chat-completions request the gateway supports.
@@ -41,12 +44,30 @@ type ChatRequest struct {
 	Temperature *float64  `json:"temperature,omitempty"`
 	MaxTokens   int       `json:"max_tokens,omitempty"`
 	Stream      bool      `json:"stream,omitempty"`
+	// PromptCacheKey pins requests that share a prefix to the same OpenAI
+	// cache shard. Only the OpenAI adapter sends it.
+	PromptCacheKey string `json:"prompt_cache_key,omitempty"`
 }
 
 type Usage struct {
-	PromptTokens     int `json:"prompt_tokens"`
-	CompletionTokens int `json:"completion_tokens"`
-	TotalTokens      int `json:"total_tokens"`
+	PromptTokens        int                  `json:"prompt_tokens"` // all input tokens, cached or not
+	CompletionTokens    int                  `json:"completion_tokens"`
+	TotalTokens         int                  `json:"total_tokens"`
+	PromptTokensDetails *PromptTokensDetails `json:"prompt_tokens_details,omitempty"`
+	CacheWriteTokens    int                  `json:"cache_write_tokens,omitempty"` // Anthropic cache_creation_input_tokens
+}
+
+// PromptTokensDetails is OpenAI's breakdown of the prompt.
+type PromptTokensDetails struct {
+	CachedTokens int `json:"cached_tokens"`
+}
+
+// Cached is how many prompt tokens were read from the provider's cache.
+func (u Usage) Cached() int {
+	if u.PromptTokensDetails == nil {
+		return 0
+	}
+	return u.PromptTokensDetails.CachedTokens
 }
 
 type Choice struct {
