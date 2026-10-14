@@ -1,14 +1,16 @@
 | | baseline | tuned | change |
 |---|---:|---:|---:|
-| Cost per 1,000 turns (USD) | $0.5013 | $0.2166 | -56.8% |
-| TTFT p50 (ms) | 491 | 230 | -53.0% |
-| TTFT p95 (ms) | 831 | 375 | -54.9% |
-| TTFT p99 (ms) | 1055 | 473 | -55.1% |
-| Dropped streams | 41 | 0 | -100.0% |
+| Cost per 1,000 turns (USD) | $0.7147 | $0.3473 | -51.4% |
+| TTFT p50 (ms) | 529 | 233 | -56.0% |
+| TTFT p95 (ms) | 1074 | 370 | -65.6% |
+| TTFT p99 (ms) | 1481 | 465 | -68.6% |
+| Dropped streams | 480 | 0 | -100.0% |
 | Corrupt replies | 0 | 0 | = |
-| Turns | 2034 | 2034 | +0.0% |
-| Concurrent sessions | 100 | 100 | +0.0% |
-| Streams in flight at kill | 45 | 45 | +0.0% |
-| Cached share of prompt tokens | 7.4% | 90.0% | +1119.8% |
-| Prompt tokens per turn | 3998 | 3982 | -0.4% |
-| Failovers | 0 | 69 | new |
+| Turns | 31826 | 31826 | +0.0% |
+| Budget-blocked or rate-limited turns | 0 | 0 | = |
+| Concurrent sessions | 1000 | 1000 | +0.0% |
+| Streams in flight at kill | 558 | 513 | -8.1% |
+| Cached share of prompt tokens | 18.9% | 91.1% | +380.5% |
+| Prompt tokens per turn | 5073 | 4275 | -15.7% |
+| Summaries applied to prompts | 0 | 12180 | new |
+| Provider failovers | 19582 | 838 | -95.7% |

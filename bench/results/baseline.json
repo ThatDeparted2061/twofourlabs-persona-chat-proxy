@@ -1,32 +1,33 @@
 {
   "label": "baseline",
   "sessions": 1000,
-  "turns": 31768,
-  "completed": 31263,
-  "dropped_streams": 468,
+  "turns": 31826,
+  "completed": 31346,
+  "dropped_streams": 480,
   "corrupt_replies": 0,
-  "budget_blocked": 28,
-  "http_errors": 9,
+  "budget_blocked": 0,
+  "rate_limited": 0,
+  "http_errors": {},
   "ttft_ms": {
-    "p50": 522.386,
-    "p95": 1032.864,
-    "p99": 1312.184
+    "p50": 528.774,
+    "p95": 1073.664,
+    "p99": 1480.68
   },
   "turn_ms": {
-    "p50": 1974.782,
-    "p95": 3042.941,
-    "p99": 3361.481
+    "p50": 1998.884,
+    "p95": 3166.736,
+    "p99": 4224.556
   },
-  "cost_usd": 22.663301499999967,
-  "cost_per_1k_turns_usd": 0.7134003242256348,
+  "cost_usd": 22.746136199999924,
+  "cost_per_1k_turns_usd": 0.71470295355998,
   "failovers": {
-    "connect_error": 19525
+    "connect_error": 19582
   },
   "summaries": {},
-  "prompt_tokens": 160622859,
-  "cached_prompt_tokens": 30464384,
-  "completion_tokens": 4259295,
+  "prompt_tokens": 161441561,
+  "cached_prompt_tokens": 30592768,
+  "completion_tokens": 4281715,
   "provider_killed_at": "45s",
-  "streams_in_flight_at_kill": 565,
-  "duration_seconds": 216.830142833
+  "streams_in_flight_at_kill": 558,
+  "duration_seconds": 214.839626834
 }

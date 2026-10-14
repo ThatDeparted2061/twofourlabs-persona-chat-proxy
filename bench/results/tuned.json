@@ -1,35 +1,41 @@
 {
   "label": "tuned",
-  "sessions": 100,
-  "turns": 2034,
-  "completed": 2034,
+  "sessions": 1000,
+  "turns": 31826,
+  "completed": 31826,
   "dropped_streams": 0,
   "corrupt_replies": 0,
   "budget_blocked": 0,
-  "http_errors": 0,
+  "rate_limited": 0,
+  "http_errors": {},
   "ttft_ms": {
-    "p50": 230.394,
-    "p95": 375.09,
-    "p99": 473.485
+    "p50": 232.748,
+    "p95": 369.691,
+    "p99": 465.374
   },
   "turn_ms": {
-    "p50": 1715.538,
-    "p95": 2629.946,
-    "p99": 2806.145
+    "p50": 1705.927,
+    "p95": 2611.575,
+    "p99": 2789.506
   },
-  "cost_usd": 0.44060468499999983,
-  "cost_per_1k_turns_usd": 0.21661980580137652,
+  "cost_usd": 11.05246459499998,
+  "cost_per_1k_turns_usd": 0.3472778418588569,
   "failovers": {
-    "429": 2,
-    "5xx": 1,
-    "connect_error": 26,
-    "stall": 1,
-    "stream_error": 39
+    "429": 135,
+    "5xx": 73,
+    "connect_error": 87,
+    "first_token_timeout": 42,
+    "stall": 64,
+    "stream_error": 437
   },
-  "prompt_tokens": 8098711,
-  "cached_prompt_tokens": 7291459,
-  "completion_tokens": 276579,
-  "provider_killed_at": "15s",
-  "streams_in_flight_at_kill": 45,
-  "duration_seconds": 116.1501905
+  "summaries": {
+    "applied": 12180,
+    "written": 1461
+  },
+  "prompt_tokens": 136067546,
+  "cached_prompt_tokens": 123905218,
+  "completion_tokens": 4357114,
+  "provider_killed_at": "45s",
+  "streams_in_flight_at_kill": 513,
+  "duration_seconds": 182.131512791
 }
