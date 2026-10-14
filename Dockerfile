@@ -1,16 +1,15 @@
-# The build stage runs on the builder's native platform and cross-compiles, so
-# multi-arch images (linux/amd64 + linux/arm64) need no QEMU emulation.
+# One image, three binaries: the proxy, the simulated provider and the load
+# generator. The build stage cross-compiles, so multi-arch images need no QEMU.
 FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS build
 ARG TARGETOS TARGETARCH
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o /gateway ./cmd/gateway
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o /out/ ./cmd/proxy ./cmd/fakellm ./cmd/loadgen
 
-# distroless/static ships CA certificates (needed for Groq/Gemini HTTPS) and runs as nonroot.
+# distroless/static ships CA certificates (needed for provider HTTPS) and runs as nonroot.
 FROM gcr.io/distroless/static-debian12:nonroot
-COPY --from=build /gateway /gateway
+COPY --from=build /out/ /
 EXPOSE 8080
-# Configure with env vars, or mount a file and pass: -config /config.yaml
-ENTRYPOINT ["/gateway"]
+ENTRYPOINT ["/proxy"]

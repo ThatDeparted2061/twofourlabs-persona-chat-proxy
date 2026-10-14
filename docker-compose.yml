@@ -1,54 +1,86 @@
 # docker compose up --build
-# Zero-config default: Ollama is the primary provider. To use Groq/Gemini, put
-# GROQ_API_KEY / GEMINI_API_KEY (and PRIMARY_PROVIDER=groq) in a .env file.
+#
+# Runs the tuned proxy against two simulated providers (OpenAI and Anthropic
+# wire formats), replays 1,000 concurrent chat sessions, kills the primary
+# provider 45 s in, and prints the result. Watch it live in Grafana at
+# http://localhost:3000 (dashboard "persona-chat-proxy").
+#
+# Baseline for comparison:  PROXY_MODE=baseline docker compose up --build
+# Real providers instead:   set OPENAI_API_KEY / ANTHROPIC_API_KEY and the
+#                           *_BASE_URL variables to the real endpoints.
+x-image: &image
+  build: .
+  image: persona-chat-proxy:local
+
 services:
-  gateway:
-    build: .
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      retries: 30
+
+  fake-openai:
+    <<: *image
+    entrypoint: ["/fakellm", "-addr", ":9001", "-name", "openai",
+                 "-p429", "0.01", "-p5xx", "0.005", "-pstall-first", "0.003", "-pstall-mid", "0.005"]
+    restart: "no" # it gets killed mid-run on purpose
+
+  fake-anthropic:
+    <<: *image
+    entrypoint: ["/fakellm", "-addr", ":9002", "-name", "anthropic"]
+
+  proxy:
+    <<: *image
+    entrypoint: ["/proxy", "-config", "/dev/null"]
     ports:
       - "8080:8080"
     environment:
-      PRIMARY_PROVIDER: ${PRIMARY_PROVIDER:-ollama}
-      GROQ_API_KEY: ${GROQ_API_KEY:-}
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      GATEWAY_API_KEYS: ${GATEWAY_API_KEYS:-}
-      OLLAMA_BASE_URL: http://ollama:11434
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2}
+      PROXY_MODE: ${PROXY_MODE:-tuned}
+      REDIS_URL: redis://redis:6379/0
+      REDIS_PREFIX: "${PROXY_MODE:-tuned}:"
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-sk-sim}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-http://fake-openai:9001/v1}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-sk-ant-sim}
+      ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-http://fake-anthropic:9002/v1}
+      RATE_LIMIT_TPS: "5"
+      RATE_LIMIT_BURST: "20"
     depends_on:
-      ollama-models:
-        condition: service_completed_successfully
-    restart: unless-stopped
-
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama:/root/.ollama
-    healthcheck:
-      test: ["CMD", "ollama", "list"]
-      interval: 5s
-      timeout: 5s
-      retries: 30
-
-  # One-shot job: pulls the chat and embedding models into the shared volume
-  # before the gateway starts. Cached after the first run.
-  ollama-models:
-    image: ollama/ollama:latest
-    environment:
-      OLLAMA_HOST: http://ollama:11434
-    entrypoint: ["sh", "-c", "ollama pull ${OLLAMA_MODEL:-llama3.2} && ollama pull nomic-embed-text"]
-    depends_on:
-      ollama:
+      redis:
         condition: service_healthy
+      fake-openai:
+        condition: service_started
+      fake-anthropic:
+        condition: service_started
+
+  loadgen:
+    <<: *image
+    entrypoint: ["/loadgen", "-proxy", "http://proxy:8080", "-label", "${PROXY_MODE:-tuned}",
+                 "-sessions", "${SESSIONS:-1000}", "-kill-url", "http://fake-openai:9001/admin/kill",
+                 "-kill-after", "45s", "-out", "/results/${PROXY_MODE:-tuned}.json"]
+    volumes:
+      - ./bench/results:/results
+    depends_on:
+      - proxy
+    restart: "no"
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v3.5.0
     ports:
       - "9090:9090"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    depends_on:
-      - gateway
 
-volumes:
-  ollama:
+  grafana:
+    image: grafana/grafana:12.2.0
+    ports:
+      - "3000:3000"
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/persona-chat.json
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
