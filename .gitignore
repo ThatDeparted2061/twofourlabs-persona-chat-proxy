@@ -1,0 +1,19 @@
+# Binaries
+/bin/
+/gateway
+*.exe
+*.test
+*.out
+
+# Secrets and local config (only config.example.yaml is committed)
+*.env
+config.yaml
+
+# k6 output
+k6/*.json
+
+# Editor / OS files
+.idea/
+.vscode/
+.DS_Store
+.serena/
