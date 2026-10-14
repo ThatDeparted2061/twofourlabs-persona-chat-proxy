@@ -108,3 +108,21 @@ func TestPassthroughLeavesMidStreamFailuresToTheClient(t *testing.T) {
 		t.Fatal("baseline should not recover a broken stream")
 	}
 }
+
+func TestBreakerProbesOncePerCooldown(t *testing.T) {
+	b := &breaker{name: "x", threshold: 3, cooldown: 50 * time.Millisecond}
+	for range 3 {
+		b.record(false)
+	}
+	if b.allow() {
+		t.Fatal("open breaker must refuse")
+	}
+	time.Sleep(60 * time.Millisecond)
+	if !b.allow() || b.allow() {
+		t.Fatal("after the cooldown exactly one probe may pass")
+	}
+	b.record(true)
+	if !b.allow() || !b.allow() {
+		t.Fatal("a successful probe closes the breaker")
+	}
+}

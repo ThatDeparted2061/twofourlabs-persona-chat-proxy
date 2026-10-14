@@ -269,13 +269,14 @@ func (r *Router) breaker(name string) *breaker {
 }
 
 // breaker skips a provider for cooldown after threshold consecutive failures,
-// so a dead provider costs one fast failure per cooldown instead of a timeout
-// per request. After the cooldown it lets traffic through again; one more
-// failure reopens it.
+// so a dead provider costs one failed probe per cooldown instead of a failed
+// attempt per request. After the cooldown it lets a single request through;
+// a success closes it, a failure reopens it.
 type breaker struct {
 	name      string
 	mu        sync.Mutex
 	fails     int
+	halfOpen  bool
 	openUntil time.Time
 	threshold int
 	cooldown  time.Duration
@@ -284,21 +285,27 @@ type breaker struct {
 func (b *breaker) allow() bool {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	return !time.Now().Before(b.openUntil)
+	now := time.Now()
+	if now.Before(b.openUntil) {
+		return false
+	}
+	if b.halfOpen {
+		b.openUntil = now.Add(b.cooldown) // this request is the probe; the rest wait for its result
+	}
+	return true
 }
 
 func (b *breaker) record(ok bool) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	if ok {
-		b.fails = 0
+		b.fails, b.halfOpen, b.openUntil = 0, false, time.Time{}
 		metrics.BreakerOpen(b.name, false)
 		return
 	}
 	b.fails++
 	if b.fails >= b.threshold {
-		b.openUntil = time.Now().Add(b.cooldown)
-		b.fails = b.threshold - 1 // half-open: the next failure reopens it
+		b.halfOpen, b.openUntil = true, time.Now().Add(b.cooldown)
 		metrics.BreakerOpen(b.name, true)
 	}
 }
