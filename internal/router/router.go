@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand/v2"
+	"sync"
 	"time"
 
 	"github.com/ThatDeparted2061/twofourlabs-persona-chat-proxy/internal/metrics"
@@ -18,6 +19,9 @@ type Router struct {
 	providers   []providers.Provider
 	MaxRetries  int           // extra attempts per provider on 429/5xx
 	BaseBackoff time.Duration // first retry delay; doubles per retry, plus up to 50% jitter
+
+	mu       sync.Mutex
+	breakers map[string]*breaker // Relay only
 }
 
 // New routes to ps in order: ps[0] is the primary, the rest are fallbacks.
