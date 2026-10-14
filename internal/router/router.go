@@ -31,9 +31,10 @@ func New(ps ...providers.Provider) *Router {
 
 func (r *Router) Providers() []providers.Provider { return r.providers }
 
-// Chat returns the first successful completion.
+// Chat returns the first successful completion. It skips providers whose
+// circuit breaker is open (rolling summaries use it, alongside Relay).
 func (r *Router) Chat(ctx context.Context, req providers.ChatRequest) (*providers.ChatResponse, error) {
-	resp, name, err := try(ctx, r, req, providers.Provider.Chat)
+	resp, name, err := try(ctx, r, r.available(), true, req, providers.Provider.Chat)
 	if err != nil {
 		return nil, err
 	}
@@ -45,18 +46,18 @@ func (r *Router) Chat(ctx context.Context, req providers.ChatRequest) (*provider
 // name. Failover only happens before the first byte; once a stream is flowing,
 // errors arrive on the channel.
 func (r *Router) ChatStream(ctx context.Context, req providers.ChatRequest) (<-chan providers.StreamChunk, string, error) {
-	return try(ctx, r, req, providers.Provider.ChatStream)
+	return try(ctx, r, r.providers, false, req, providers.Provider.ChatStream)
 }
 
 // try calls each provider in turn. Non-retryable errors (4xx, network) move
 // straight to the next provider; 429/5xx are retried with backoff first.
 // ponytail: ignores upstream Retry-After; honor it if providers start sending long ones.
-func try[T any](ctx context.Context, r *Router, req providers.ChatRequest,
+func try[T any](ctx context.Context, r *Router, ps []providers.Provider, breakers bool, req providers.ChatRequest,
 	call func(providers.Provider, context.Context, providers.ChatRequest) (T, error)) (T, string, error) {
 	var zero T
 	var errs []error
-	for i, p := range r.providers {
-		if i > 0 {
+	for i, p := range ps {
+		if p != r.providers[0] {
 			req.Model = "" // model names are provider-specific: fallbacks use their configured default
 		}
 		for attempt := 0; ; attempt++ {
@@ -64,6 +65,9 @@ func try[T any](ctx context.Context, r *Router, req providers.ChatRequest,
 			out, err := call(p, ctx, req)
 			metrics.ObserveCall(p.Name(), err, time.Since(start))
 			if err == nil {
+				if breakers {
+					r.breaker(p.Name()).record(true)
+				}
 				return out, p.Name(), nil
 			}
 			if ctx.Err() != nil {
@@ -71,8 +75,11 @@ func try[T any](ctx context.Context, r *Router, req providers.ChatRequest,
 			}
 			errs = append(errs, err)
 			if !retryable(err) || attempt == r.MaxRetries {
-				if i+1 < len(r.providers) {
-					metrics.Failover(p.Name(), r.providers[i+1].Name(), reason(err))
+				if breakers {
+					r.breaker(p.Name()).record(false)
+				}
+				if i+1 < len(ps) {
+					metrics.Failover(p.Name(), ps[i+1].Name(), reason(err))
 				}
 				break
 			}
