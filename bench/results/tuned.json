@@ -1,0 +1,35 @@
+{
+  "label": "tuned",
+  "sessions": 100,
+  "turns": 2034,
+  "completed": 2034,
+  "dropped_streams": 0,
+  "corrupt_replies": 0,
+  "budget_blocked": 0,
+  "http_errors": 0,
+  "ttft_ms": {
+    "p50": 230.394,
+    "p95": 375.09,
+    "p99": 473.485
+  },
+  "turn_ms": {
+    "p50": 1715.538,
+    "p95": 2629.946,
+    "p99": 2806.145
+  },
+  "cost_usd": 0.44060468499999983,
+  "cost_per_1k_turns_usd": 0.21661980580137652,
+  "failovers": {
+    "429": 2,
+    "5xx": 1,
+    "connect_error": 26,
+    "stall": 1,
+    "stream_error": 39
+  },
+  "prompt_tokens": 8098711,
+  "cached_prompt_tokens": 7291459,
+  "completion_tokens": 276579,
+  "provider_killed_at": "15s",
+  "streams_in_flight_at_kill": 45,
+  "duration_seconds": 116.1501905
+}

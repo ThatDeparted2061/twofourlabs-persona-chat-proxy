@@ -64,7 +64,8 @@ func printComparison(w io.Writer, paths []string) error {
 		return float64(r.CachedTokens) / float64(r.PromptTokens) * 100
 	}, "%.1f%%")
 	row("Prompt tokens per turn", func(r Result) float64 { return float64(r.PromptTokens) / float64(max(1, r.Turns)) }, "%.0f")
-	row("Failovers", func(r Result) float64 {
+	row("Summaries applied to prompts", func(r Result) float64 { return float64(r.Summaries["applied"]) }, "%.0f")
+	row("Provider failovers", func(r Result) float64 {
 		n := 0
 		for _, v := range r.Failovers {
 			n += v

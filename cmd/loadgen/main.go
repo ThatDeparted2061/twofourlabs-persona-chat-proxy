@@ -48,11 +48,11 @@ func main() {
 	flag.StringVar(&c.out, "out", "", "write the JSON result here")
 	flag.StringVar(&c.runID, "run-id", strconv.FormatInt(time.Now().Unix(), 36), "prefix for user and conversation IDs")
 	flag.IntVar(&c.sessions, "sessions", 1000, "concurrent chat sessions")
-	flag.IntVar(&c.turnsMin, "turns-min", 12, "fewest turns per session")
-	flag.IntVar(&c.turnsMax, "turns-max", 28, "most turns per session")
+	flag.IntVar(&c.turnsMin, "turns-min", 16, "fewest turns per session")
+	flag.IntVar(&c.turnsMax, "turns-max", 48, "most turns per session")
 	flag.IntVar(&c.personas, "personas", 8, "distinct personas")
-	flag.DurationVar(&c.thinkMin, "think-min", time.Second, "shortest pause between turns")
-	flag.DurationVar(&c.thinkMax, "think-max", 3*time.Second, "longest pause between turns")
+	flag.DurationVar(&c.thinkMin, "think-min", 500*time.Millisecond, "shortest pause between turns")
+	flag.DurationVar(&c.thinkMax, "think-max", 2500*time.Millisecond, "longest pause between turns")
 	flag.DurationVar(&c.ramp, "ramp", 10*time.Second, "spread session starts over this long")
 	flag.DurationVar(&c.timeout, "timeout", 30*time.Second, "a turn with no [DONE] by then counts as dropped")
 	flag.StringVar(&c.killURL, "kill-url", "", "POST here mid-run to kill a provider (fakellm /admin/kill)")
@@ -96,6 +96,7 @@ type Result struct {
 	CostUSD         float64        `json:"cost_usd"` // from the proxy: turns, summaries, failed attempts
 	CostPer1kTurns  float64        `json:"cost_per_1k_turns_usd"`
 	Failovers       map[string]int `json:"failovers"`
+	Summaries       map[string]int `json:"summaries"`
 	PromptTokens    int64          `json:"prompt_tokens"`
 	CachedTokens    int64          `json:"cached_prompt_tokens"`
 	CompletionTkns  int64          `json:"completion_tokens"`
@@ -155,7 +156,7 @@ func run(c config) (*Result, error) {
 
 	var (
 		mu       sync.Mutex
-		res      = &Result{Label: c.label, Sessions: c.sessions, Failovers: map[string]int{}}
+		res      = &Result{Label: c.label, Sessions: c.sessions, Failovers: map[string]int{}, Summaries: map[string]int{}}
 		ttfts    []time.Duration
 		totals   []time.Duration
 		inFlight atomic.Int64
@@ -333,8 +334,9 @@ func scrape(client *http.Client, proxy string, res *Result) error {
 		case "persona_cost_usd_total":
 			res.CostUSD += v
 		case "persona_failovers_total":
-			reason := label(rest, "reason")
-			res.Failovers[reason] += int(v)
+			res.Failovers[label(rest, "reason")] += int(v)
+		case "persona_summaries_total":
+			res.Summaries[label(rest, "result")] += int(v)
 		}
 	}
 	return sc.Err()

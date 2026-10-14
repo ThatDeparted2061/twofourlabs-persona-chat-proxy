@@ -71,6 +71,9 @@ func try[T any](ctx context.Context, r *Router, req providers.ChatRequest,
 			}
 			errs = append(errs, err)
 			if !retryable(err) || attempt == r.MaxRetries {
+				if i+1 < len(r.providers) {
+					metrics.Failover(p.Name(), r.providers[i+1].Name(), reason(err))
+				}
 				break
 			}
 			if err := sleep(ctx, r.backoff(attempt)); err != nil {
@@ -79,6 +82,14 @@ func try[T any](ctx context.Context, r *Router, req providers.ChatRequest,
 		}
 	}
 	return zero, "", fmt.Errorf("all providers failed: %w", errors.Join(errs...))
+}
+
+func reason(err error) string {
+	var se *providers.StatusError
+	if errors.As(err, &se) {
+		return classify(se)
+	}
+	return "connect_error"
 }
 
 func retryable(err error) bool {
