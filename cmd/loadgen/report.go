@@ -55,6 +55,7 @@ func printComparison(w io.Writer, paths []string) error {
 	row("Dropped streams", func(r Result) float64 { return float64(r.Dropped) }, "%.0f")
 	row("Corrupt replies", func(r Result) float64 { return float64(r.Corrupt) }, "%.0f")
 	row("Turns", func(r Result) float64 { return float64(r.Turns) }, "%.0f")
+	row("Budget-blocked or rate-limited turns", func(r Result) float64 { return float64(r.BudgetBlocked + r.RateLimited) }, "%.0f")
 	row("Concurrent sessions", func(r Result) float64 { return float64(r.Sessions) }, "%.0f")
 	row("Streams in flight at kill", func(r Result) float64 { return float64(r.InFlightAtKill) }, "%.0f")
 	row("Cached share of prompt tokens", func(r Result) float64 {

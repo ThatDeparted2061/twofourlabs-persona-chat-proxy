@@ -11,6 +11,8 @@ cd "$(dirname "$0")/.."
 SESSIONS=${SESSIONS:-1000}
 KILL_AFTER=${KILL_AFTER:-40s}
 REDIS_URL=${REDIS_URL:-redis://localhost:6379/0}
+# Budgets are still checked on every turn, but set high enough that no
+# simulated user reaches them: a soft limit would shorten replies and skew cost.
 # Background faults on the primary for the whole run, on top of the kill.
 FAULTS=${FAULTS:--p429 0.01 -p5xx 0.005 -pstall-first 0.003 -pstall-mid 0.005}
 OUT=bench/results
@@ -34,7 +36,7 @@ run() {
   PROXY_MODE=$mode GATEWAY_PORT=8080 REDIS_URL=$REDIS_URL REDIS_PREFIX="bench-$(date +%s)-$mode:" \
   OPENAI_API_KEY=sk-sim OPENAI_BASE_URL=http://localhost:9001/v1 \
   ANTHROPIC_API_KEY=sk-ant-sim ANTHROPIC_BASE_URL=http://localhost:9002/v1 \
-  RATE_LIMIT_TPS=5 RATE_LIMIT_BURST=20 \
+  RATE_LIMIT_TPS=5 RATE_LIMIT_BURST=20 BUDGET_SOFT_TOKENS=50000000 BUDGET_HARD_TOKENS=60000000 \
     bin/proxy -config /dev/null >"$OUT/logs/$mode-proxy.log" 2>&1 & pids+=($!)
   wait_for http://localhost:9001/admin/faults
   wait_for http://localhost:9002/admin/faults

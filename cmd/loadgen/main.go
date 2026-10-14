@@ -90,7 +90,8 @@ type Result struct {
 	Dropped         int            `json:"dropped_streams"` // ended without [DONE], errored in-band, or timed out
 	Corrupt         int            `json:"corrupt_replies"` // arrived but failed the checksum
 	BudgetBlocked   int            `json:"budget_blocked"`
-	HTTPErrors      int            `json:"http_errors"`
+	RateLimited     int            `json:"rate_limited"`
+	HTTPErrors      map[int]int    `json:"http_errors"` // other non-200 answers by status
 	TTFTms          Percentiles    `json:"ttft_ms"`
 	TurnMs          Percentiles    `json:"turn_ms"`
 	CostUSD         float64        `json:"cost_usd"` // from the proxy: turns, summaries, failed attempts
@@ -133,6 +134,7 @@ type turnResult struct {
 	text                   string
 	done, inBandErr        bool
 	status                 int
+	budget                 bool // 429 budget_exceeded
 	prompt, cached, output int64
 }
 
@@ -148,7 +150,7 @@ func run(c config) (*Result, error) {
 
 	var (
 		mu       sync.Mutex
-		res      = &Result{Label: c.label, Sessions: c.sessions, Failovers: map[string]int{}, Summaries: map[string]int{}}
+		res      = &Result{Label: c.label, Sessions: c.sessions, Failovers: map[string]int{}, Summaries: map[string]int{}, HTTPErrors: map[int]int{}}
 		ttfts    []time.Duration
 		totals   []time.Duration
 		inFlight atomic.Int64
@@ -192,12 +194,14 @@ func run(c config) (*Result, error) {
 				res.CachedTokens += tr.cached
 				res.CompletionTkns += tr.output
 				switch {
-				case tr.status == http.StatusTooManyRequests:
-					res.BudgetBlocked++
-				case tr.status != http.StatusOK:
-					res.HTTPErrors++
-				case !tr.done || tr.inBandErr:
+				case tr.status == 0 || !tr.done || tr.inBandErr: // no answer at all, a cut-off stream, or an in-band error
 					res.Dropped++
+				case tr.budget:
+					res.BudgetBlocked++
+				case tr.status == http.StatusTooManyRequests:
+					res.RateLimited++
+				case tr.status != http.StatusOK:
+					res.HTTPErrors[tr.status]++
 				case !fakellm.Verify(tr.text):
 					res.Corrupt++
 				default:
@@ -206,7 +210,7 @@ func run(c config) (*Result, error) {
 					totals = append(totals, tr.total)
 				}
 				mu.Unlock()
-				if tr.status == http.StatusTooManyRequests {
+				if tr.budget {
 					return // out of budget for today
 				}
 				if tr.text == "" {
@@ -269,7 +273,9 @@ func turn(client *http.Client, c config, personaID, user, conv string, history [
 	defer resp.Body.Close()
 	tr.status = resp.StatusCode
 	if resp.StatusCode != http.StatusOK {
-		io.Copy(io.Discard, resp.Body)
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		tr.budget = bytes.Contains(b, []byte("budget_exceeded"))
+		tr.done = true // an answered request is not a dropped stream
 		return tr
 	}
 	var text strings.Builder

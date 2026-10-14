@@ -45,6 +45,8 @@ services:
       ANTHROPIC_BASE_URL: ${ANTHROPIC_BASE_URL:-http://fake-anthropic:9002/v1}
       RATE_LIMIT_TPS: "5"
       RATE_LIMIT_BURST: "20"
+      BUDGET_SOFT_TOKENS: ${BUDGET_SOFT_TOKENS:-50000000} # high for the benchmark; see config.example.yaml
+      BUDGET_HARD_TOKENS: ${BUDGET_HARD_TOKENS:-60000000}
     depends_on:
       redis:
         condition: service_healthy
