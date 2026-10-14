@@ -17,7 +17,7 @@ OUT=bench/results
 mkdir -p bin "$OUT" "$OUT/logs"
 
 go build -o bin/ ./cmd/proxy ./cmd/fakellm ./cmd/loadgen
-redis-cli -u "$REDIS_URL" ping >/dev/null || { echo "Redis is not reachable at $REDIS_URL"; exit 1; }
+if command -v redis-cli >/dev/null; then redis-cli -u "$REDIS_URL" ping >/dev/null || { echo "Redis is not reachable at $REDIS_URL"; exit 1; }; fi
 
 pids=()
 cleanup() { for p in "${pids[@]:-}"; do kill "$p" 2>/dev/null || true; done; wait 2>/dev/null || true; }

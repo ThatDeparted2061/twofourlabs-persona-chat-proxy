@@ -1,34 +1,51 @@
-# Copy to config.yaml (git-ignored) and edit. Every value can also be set with
+# Copy to config.yaml (git-ignored) and edit. Most values can also be set with
 # the env var in the trailing comment; env vars win over this file.
 
 port: 8080                          # GATEWAY_PORT
+mode: tuned                         # PROXY_MODE: tuned | baseline (LLM-Gateway behaviour, for comparison)
 
-# groq | gemini | ollama. Every other configured provider becomes a fallback,
-# tried in the order groq -> gemini -> ollama.
-primary_provider: groq              # PRIMARY_PROVIDER
+# openai | anthropic | groq | gemini | ollama. Every other configured provider
+# becomes a fallback, tried in the order openai -> anthropic -> groq -> gemini -> ollama.
+primary_provider: openai            # PRIMARY_PROVIDER
 
-# Client keys allowed to call the gateway (Authorization: Bearer <key>).
-# Empty list = open access (any key, or none, is accepted and rate limited per key).
+# Client keys allowed to call the proxy (Authorization: Bearer <key>).
+# Empty list = open access.
 api_keys: []                        # GATEWAY_API_KEYS (comma-separated)
 
-groq:
-  api_key: ""                       # GROQ_API_KEY
-  model: llama-3.1-8b-instant       # GROQ_MODEL
+redis_url: redis://localhost:6379/0 # REDIS_URL: personas, budgets, summaries
+redis_prefix: ""                    # REDIS_PREFIX
 
-gemini:
-  api_key: ""                       # GEMINI_API_KEY
-  model: gemini-2.5-flash           # GEMINI_MODEL
+openai:
+  api_key: ""                       # OPENAI_API_KEY
+  base_url: https://api.openai.com/v1 # OPENAI_BASE_URL
+  model: gpt-4.1-mini               # OPENAI_MODEL
 
-ollama:
-  base_url: http://localhost:11434  # OLLAMA_BASE_URL
-  model: llama3.2                   # OLLAMA_MODEL
+anthropic:
+  api_key: ""                       # ANTHROPIC_API_KEY
+  base_url: https://api.anthropic.com/v1 # ANTHROPIC_BASE_URL
+  model: claude-haiku-5-5           # ANTHROPIC_MODEL
+  disable_thinking: true            # chat wants a fast first token
 
-cache:
-  ttl: 1h                           # CACHE_TTL (exact and semantic entries)
-  semantic: true                    # SEMANTIC_CACHE
-  similarity_threshold: 0.95        # SIMILARITY_THRESHOLD (cosine, 0-1]
-  embedding_model: nomic-embed-text # EMBEDDING_MODEL (served by Ollama)
+relay:
+  first_token_timeout: 2s           # FIRST_TOKEN_TIMEOUT: fail over if no token by then
+  stall_timeout: 1500ms             # STALL_TIMEOUT: fail over if a stream goes quiet this long
+  max_attempts: 4                   # MAX_ATTEMPTS per turn, across providers
 
-rate_limit:                         # per API key; each request costs one token
-  tokens_per_sec: 5                 # RATE_LIMIT_TPS
+budget:                             # per user (X-User-ID) per UTC day, prompt + completion tokens
+  soft_tokens: 400000               # BUDGET_SOFT_TOKENS: past this, replies are capped...
+  soft_max_tokens: 150              # ...to this many tokens...
+  soft_model: ""                    # BUDGET_SOFT_MODEL ...and optionally sent to a cheaper model
+  hard_tokens: 500000               # BUDGET_HARD_TOKENS: past this, 429 budget_exceeded
+
+history:
+  trigger_tokens: 3000              # SUMMARY_TRIGGER_TOKENS: summarize when unsummarized history passes this
+  keep_tokens: 1200                 # SUMMARY_KEEP_TOKENS: newest turns kept verbatim
+
+rate_limit:                         # per user; each request costs one token
+  tokens_per_sec: 2                 # RATE_LIMIT_TPS
   burst: 10                         # RATE_LIMIT_BURST
+
+# USD per million tokens, merged over the built-in table (see internal/pricing).
+pricing:
+  gpt-4.1-mini: {input: 0.40, cached_input: 0.10, output: 1.60}
+  claude-haiku-5-5: {input: 0.10, cached_input: 0.01, cache_write: 0.125, output: 0.50}

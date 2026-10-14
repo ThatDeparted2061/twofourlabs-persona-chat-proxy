@@ -75,7 +75,7 @@ func main() {
 	if c.out != "" {
 		os.MkdirAll(filepath.Dir(c.out), 0o755)
 		if err := os.WriteFile(c.out, b, 0o644); err != nil {
-			log.Fatal(err)
+			log.Printf("could not write %s: %v (result printed below)", c.out, err)
 		}
 	}
 	fmt.Println(string(b))
@@ -141,16 +141,8 @@ func run(c config) (*Result, error) {
 	ps := personas(c.personas, rng)
 	client := &http.Client{Transport: &http.Transport{MaxIdleConnsPerHost: c.sessions + 16, MaxConnsPerHost: 0}}
 	for _, p := range ps {
-		body, _ := json.Marshal(map[string]string{"prompt": p.Prompt, "name": p.Name})
-		req, _ := http.NewRequest(http.MethodPut, c.proxy+"/v1/personas/"+p.ID, bytes.NewReader(body))
-		req.Header.Set("Authorization", "Bearer "+c.key)
-		resp, err := client.Do(req)
-		if err != nil {
-			return nil, fmt.Errorf("register persona: %w", err)
-		}
-		resp.Body.Close()
-		if resp.StatusCode/100 != 2 {
-			return nil, fmt.Errorf("register persona %s: HTTP %d", p.ID, resp.StatusCode)
+		if err := register(client, c, p); err != nil {
+			return nil, err
 		}
 	}
 
@@ -237,6 +229,26 @@ func run(c config) (*Result, error) {
 		res.CostPer1kTurns = res.CostUSD / float64(res.Turns) * 1000
 	}
 	return res, nil
+}
+
+// register stores a persona on the proxy, waiting up to 30 s for it to come up.
+func register(client *http.Client, c config, p persona) error {
+	body, _ := json.Marshal(map[string]string{"prompt": p.Prompt, "name": p.Name})
+	var err error
+	for range 60 {
+		req, _ := http.NewRequest(http.MethodPut, c.proxy+"/v1/personas/"+p.ID, bytes.NewReader(body))
+		req.Header.Set("Authorization", "Bearer "+c.key)
+		var resp *http.Response
+		if resp, err = client.Do(req); err == nil {
+			resp.Body.Close()
+			if resp.StatusCode/100 == 2 {
+				return nil
+			}
+			return fmt.Errorf("register persona %s: HTTP %d", p.ID, resp.StatusCode)
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	return fmt.Errorf("register persona: %w", err)
 }
 
 // turn sends one chat turn and reads the SSE stream to the end.
