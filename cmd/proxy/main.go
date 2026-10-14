@@ -21,6 +21,7 @@ import (
 	"github.com/ThatDeparted2061/twofourlabs-persona-chat-proxy/internal/config"
 	"github.com/ThatDeparted2061/twofourlabs-persona-chat-proxy/internal/handlers"
 	"github.com/ThatDeparted2061/twofourlabs-persona-chat-proxy/internal/history"
+	"github.com/ThatDeparted2061/twofourlabs-persona-chat-proxy/internal/metrics"
 	"github.com/ThatDeparted2061/twofourlabs-persona-chat-proxy/internal/persona"
 	"github.com/ThatDeparted2061/twofourlabs-persona-chat-proxy/internal/providers"
 	"github.com/ThatDeparted2061/twofourlabs-persona-chat-proxy/internal/ratelimit"
@@ -56,6 +57,8 @@ func main() {
 			ps = append(ps, providers.NewOllama(cfg.Ollama.BaseURL, cfg.Ollama.Model))
 		}
 	}
+
+	metrics.Init(cfg.ProviderOrder())
 
 	opt, err := redis.ParseURL(cfg.RedisURL)
 	if err != nil {

@@ -130,3 +130,28 @@ func BreakerOpen(provider string, open bool) {
 	}
 	breakerOpen.WithLabelValues(provider).Set(v)
 }
+
+// Init creates the failover and turn series at zero, so the first failure of
+// each kind shows up in rate(): Prometheus ignores a counter's initial jump
+// when the series did not exist before.
+func Init(providers []string) {
+	for _, from := range providers {
+		for _, to := range providers {
+			if from == to {
+				continue
+			}
+			for _, r := range []string{"429", "5xx", "4xx", "connect_error", "first_token_timeout", "stall", "stream_error", "eof"} {
+				failovers.WithLabelValues(from, to, r)
+			}
+		}
+		turns.WithLabelValues(from, "ok")
+		turns.WithLabelValues(from, "dropped")
+		breakerOpen.WithLabelValues(from).Set(0)
+	}
+	for _, s := range []string{"ok", "soft", "hard"} {
+		budgetChecks.WithLabelValues(s)
+	}
+	for _, r := range []string{"written", "applied"} {
+		summaries.WithLabelValues(r)
+	}
+}
