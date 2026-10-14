@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/harsh-791/git-Projects/llm-gateway/internal/providers"
+	"github.com/ThatDeparted2061/twofourlabs-persona-chat-proxy/internal/providers"
 )
 
 // Exact caches responses under SHA256(model + messages JSON) for a fixed TTL.

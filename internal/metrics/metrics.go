@@ -13,7 +13,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
-	"github.com/harsh-791/git-Projects/llm-gateway/internal/providers"
+	"github.com/ThatDeparted2061/twofourlabs-persona-chat-proxy/internal/providers"
 )
 
 var (

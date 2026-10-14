@@ -10,8 +10,8 @@ import (
 	"math/rand/v2"
 	"time"
 
-	"github.com/harsh-791/git-Projects/llm-gateway/internal/metrics"
-	"github.com/harsh-791/git-Projects/llm-gateway/internal/providers"
+	"github.com/ThatDeparted2061/twofourlabs-persona-chat-proxy/internal/metrics"
+	"github.com/ThatDeparted2061/twofourlabs-persona-chat-proxy/internal/providers"
 )
 
 type Router struct {

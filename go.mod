@@ -1,4 +1,4 @@
-module github.com/harsh-791/git-Projects/llm-gateway
+module github.com/ThatDeparted2061/twofourlabs-persona-chat-proxy
 
 go 1.26.4
 

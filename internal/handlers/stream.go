@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/harsh-791/git-Projects/llm-gateway/internal/metrics"
-	"github.com/harsh-791/git-Projects/llm-gateway/internal/providers"
+	"github.com/ThatDeparted2061/twofourlabs-persona-chat-proxy/internal/metrics"
+	"github.com/ThatDeparted2061/twofourlabs-persona-chat-proxy/internal/providers"
 )
 
 // stream proxies a provider stream to the client as OpenAI-style SSE, then

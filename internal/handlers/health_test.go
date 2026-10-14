@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/harsh-791/git-Projects/llm-gateway/internal/providers"
+	"github.com/ThatDeparted2061/twofourlabs-persona-chat-proxy/internal/providers"
 )
 
 type down struct{ *echo }

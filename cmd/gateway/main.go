@@ -14,13 +14,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/harsh-791/git-Projects/llm-gateway/internal/cache"
-	"github.com/harsh-791/git-Projects/llm-gateway/internal/config"
-	"github.com/harsh-791/git-Projects/llm-gateway/internal/handlers"
-	"github.com/harsh-791/git-Projects/llm-gateway/internal/providers"
-	"github.com/harsh-791/git-Projects/llm-gateway/internal/ratelimit"
-	"github.com/harsh-791/git-Projects/llm-gateway/internal/router"
-	"github.com/harsh-791/git-Projects/llm-gateway/internal/server"
+	"github.com/ThatDeparted2061/twofourlabs-persona-chat-proxy/internal/cache"
+	"github.com/ThatDeparted2061/twofourlabs-persona-chat-proxy/internal/config"
+	"github.com/ThatDeparted2061/twofourlabs-persona-chat-proxy/internal/handlers"
+	"github.com/ThatDeparted2061/twofourlabs-persona-chat-proxy/internal/providers"
+	"github.com/ThatDeparted2061/twofourlabs-persona-chat-proxy/internal/ratelimit"
+	"github.com/ThatDeparted2061/twofourlabs-persona-chat-proxy/internal/router"
+	"github.com/ThatDeparted2061/twofourlabs-persona-chat-proxy/internal/server"
 )
 
 func main() {
